@@ -1,0 +1,192 @@
+*&---------------------------------------------------------------------*
+*& Report ZPURCHASE_ORDER_DETAILS_01
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZPURCHASE_ORDER_DETAILS_01.
+TABLES : EKKO, EKPO, MAKT, LFA1, MSEG.
+
+TYPES : BEGIN OF ST_PURCHASE,
+        EBELN TYPE EKKO-EBELN,
+
+        EBELP TYPE EKPO-EBELP,
+        MATNR TYPE EKPO-MATNR,
+        MENGE TYPE EKPO-MENGE,
+        NETPR TYPE EKPO-NETPR,
+
+        MAKTX TYPE MAKT-MAKTX,
+
+        LIFNR TYPE LFA1-LIFNR,
+        NAME1 TYPE LFA1-NAME1,
+
+        MBLNR     TYPE MSEG-MBLNR,
+        MJAHR     TYPE MSEG-MJAHR,
+        MS_MENGE  TYPE MSEG-MENGE,
+        REM_QTY   TYPE EKPO-MENGE,
+
+  END OF ST_PURCHASE.
+
+DATA : IT_PURCHASE TYPE TABLE OF ST_PURCHASE.
+DATA : WA_PURCHASE TYPE ST_PURCHASE.
+
+DATA: REMAINGING_QTY TYPE MSEG-MENGE.
+
+DATA : IT_FCAT TYPE LVC_T_FCAT.
+DATA : WA_FCAT TYPE LVC_S_FCAT.
+
+SELECT-OPTIONS : S_EBELN FOR EKKO-EBELN.
+
+START-OF-SELECTION.
+
+SELECT
+        A~EBELN
+
+        B~EBELP
+        B~MATNR
+        B~MENGE
+        B~NETPR
+
+        C~MAKTX
+
+        D~LIFNR
+        D~NAME1
+
+        F~MBLNR
+        F~MJAHR
+        F~MENGE AS MS_MENGE
+
+ INTO TABLE IT_PURCHASE
+ FROM EKKO AS A
+ INNER JOIN EKPO AS B
+ ON A~EBELN = B~EBELN
+
+ LEFT OUTER JOIN MAKT AS C
+ ON B~MATNR = C~MATNR
+
+ INNER JOIN LFA1 AS D
+ ON A~LIFNR = D~LIFNR
+
+* LEFT OUTER JOIN MSEG AS F
+* ON B~MENGE = F~MENGE
+
+  LEFT OUTER JOIN MSEG AS F
+  ON B~EBELN = F~EBELN
+  AND B~EBELP = F~EBELP
+
+ WHERE A~EBELN IN S_EBELN.
+
+
+
+LOOP AT IT_PURCHASE INTO WA_PURCHASE.
+
+  CLEAR REMAINGING_QTY.
+
+  SELECT SUM( MENGE )
+    INTO REMAINGING_QTY
+    FROM MSEG
+   WHERE EBELN = WA_PURCHASE-EBELN
+     AND EBELP = WA_PURCHASE-EBELP.
+
+  WA_PURCHASE-MS_MENGE = REMAINGING_QTY.
+
+  WA_PURCHASE-REM_QTY = WA_PURCHASE-MENGE - REMAINGING_QTY.
+
+  MODIFY IT_PURCHASE FROM WA_PURCHASE.
+
+ENDLOOP.
+
+wa_fcat-col_pos = 1.
+wa_fcat-fieldname = 'EBELN'.
+wa_fcat-coltext = 'PURCHASE ORDER'.
+WA_FCAT-EMPHASIZE = 'C500'.
+APPEND wa_fcat TO it_fcat.
+CLEAR wa_fcat.
+
+wa_fcat-col_pos = 2.
+wa_fcat-fieldname = 'EBELP'.
+wa_fcat-coltext = 'LINE ITEM'.
+WA_FCAT-EMPHASIZE = 'C700'.
+APPEND wa_fcat TO it_fcat.
+CLEAR wa_fcat.
+
+wa_fcat-col_pos = 3.
+wa_fcat-fieldname = 'LIFNR'.
+wa_fcat-coltext = 'VENDOR ID'.
+WA_FCAT-EMPHASIZE = 'C300'.
+APPEND wa_fcat TO it_fcat.
+CLEAR wa_fcat.
+
+wa_fcat-col_pos = 4.
+wa_fcat-fieldname = 'NAME1'.
+wa_fcat-coltext = 'VENDOR NAME'.
+WA_FCAT-EMPHASIZE = 'C300'.
+APPEND wa_fcat TO it_fcat.
+CLEAR wa_fcat.
+
+wa_fcat-col_pos = 5.
+wa_fcat-fieldname = 'MATNR'.
+wa_fcat-coltext = 'MATERIAL NO'.
+WA_FCAT-EMPHASIZE = 'C700'.
+APPEND wa_fcat TO it_fcat.
+CLEAR wa_fcat.
+
+wa_fcat-col_pos = 6.
+wa_fcat-fieldname = 'MAKTX'.
+wa_fcat-coltext = 'MATERIAL NAME'.
+WA_FCAT-EMPHASIZE = 'C400'.
+APPEND wa_fcat TO it_fcat.
+CLEAR wa_fcat.
+
+wa_fcat-col_pos = 7.
+wa_fcat-fieldname = 'MENGE'.
+wa_fcat-coltext = 'QTY'.
+WA_FCAT-EMPHASIZE = 'C700'.
+APPEND wa_fcat TO it_fcat.
+CLEAR wa_fcat.
+
+wa_fcat-col_pos = 8.
+wa_fcat-fieldname = 'NETPR'.
+wa_fcat-coltext = 'PRICE'.
+WA_FCAT-EMPHASIZE = 'C700'.
+APPEND wa_fcat TO it_fcat.
+CLEAR wa_fcat.
+
+wa_fcat-col_pos = 9.
+wa_fcat-fieldname = 'MBLNR'.
+wa_fcat-coltext = 'GR NO'.
+WA_FCAT-EMPHASIZE = 'C200'.
+APPEND wa_fcat TO it_fcat.
+CLEAR wa_fcat.
+
+wa_fcat-col_pos = 10.
+wa_fcat-fieldname = 'MJAHR'.
+wa_fcat-coltext = 'GR YEAR'.
+WA_FCAT-EMPHASIZE = 'C200'.
+APPEND wa_fcat TO it_fcat.
+CLEAR wa_fcat.
+
+wa_fcat-col_pos = 11.
+wa_fcat-fieldname = 'MS_MENGE'.
+wa_fcat-coltext = 'GR QTY'.
+WA_FCAT-EMPHASIZE = 'C200'.
+APPEND wa_fcat TO it_fcat.
+CLEAR wa_fcat.
+
+wa_fcat-col_pos = 12.
+wa_fcat-fieldname = 'REM_QTY'.
+wa_fcat-coltext = 'REM QTY'.
+WA_FCAT-EMPHASIZE = 'C600'.
+APPEND wa_fcat TO it_fcat.
+CLEAR wa_fcat.
+
+
+CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY_LVC'
+ EXPORTING
+   I_CALLBACK_PROGRAM                = 'ZPURCHASE_ORDER_DETAILS_01 '
+   IT_FIELDCAT_LVC                   = IT_FCAT
+
+  TABLES
+    t_outtab                          = IT_PURCHASE
+ EXCEPTIONS
+   PROGRAM_ERROR                     = 1
+   OTHERS                            = 2.
